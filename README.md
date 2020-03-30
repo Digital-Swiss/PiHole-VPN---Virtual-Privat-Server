@@ -1,1 +1,5 @@
-# PiHole-VPN---Virtual-Privat-Server
+# VPN-PiHole-OpenStack-VPS
+
+```bash
+curl -L https://install.pivpn.io | bash
+```
