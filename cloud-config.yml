@@ -1,0 +1,72 @@
+#cloud-config
+preserve_hostname: false 
+fqdn: <fqdn>
+hostname: <fqdn/hostname>
+package_update: true
+package_upgrade: true
+users:
+  - name: <username>
+    ssh-authorized_keys:
+    - <your ssh public key here>
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    groups:
+      - sudo
+      - docker
+    shell: /bin/bash
+packages:
+  - ufw
+  - vim
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg2
+  - software-properties-common
+runcmd:
+  - curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
+  - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+  - apt-get update -y
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose
+  - ufw default deny incoming
+  - ufw allow <ssh_port>/tcp
+  - echo "y" | ufw enable
+write_files:
+  - path: /etc/ssh/sshd_config
+    content: |
+      Protocol 2
+      Port <ssh_port>
+      HostKey /etc/ssh/ssh_host_rsa_key
+      HostKey /etc/ssh/ssh_host_ecdsa_key
+      HostKey /etc/ssh/ssh_host_ed25519_key
+      UsePrivilegeSeparation yes
+      KeyRegenerationInterval 3600
+      SyslogFacility AUTH
+      LogLevel INFO
+      PermitRootLogin no
+      StrictModes yes
+      IgnoreRhosts yes
+      RhostsRSAAuthentication no
+      HostbasedAuthentication no
+      PubkeyAuthentication yes
+      PasswordAuthentication no
+      ChallengeResponseAuthentication no
+      UsePAM yes
+      X11Forwarding no
+      PrintMotd no
+      AcceptEnv LANG LC_*
+      Subsystem	sftp	/usr/lib/openssh/sftp-server
+      AllowUsers <username>
+      
+runcmd:
+  - printf "[sshd]\nenabled = true\nbanaction = iptables-multiport" > /etc/fail2ban/jail.local
+  - systemctl enable fail2ban
+  - ufw allow OpenSSH
+  - ufw enable
+  - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
+  - sed -i -e '/^PasswordAuthentication/s/^.*$/PasswordAuthentication no/' /etc/ssh/sshd_config
+  - sed -i -e '/^X11Forwarding/s/^.*$/X11Forwarding no/' /etc/ssh/sshd_config
+  - sed -i -e '/^#MaxAuthTries/s/^.*$/MaxAuthTries 2/' /etc/ssh/sshd_config
+  - sed -i -e '/^#AllowTcpForwarding/s/^.*$/AllowTcpForwarding no/' /etc/ssh/sshd_config
+  - sed -i -e '/^#AllowAgentForwarding/s/^.*$/AllowAgentForwarding no/' /etc/ssh/sshd_config
+  - sed -i -e '/^#AuthorizedKeysFile/s/^.*$/AuthorizedKeysFile .ssh/authorized_keys/' /etc/ssh/sshd_config
+  - sed -i '$a AllowUsers holu' /etc/ssh/sshd_config
+  - reboot.yml
