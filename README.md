@@ -46,3 +46,26 @@ server1
 root@server1:# hostname -f
 server1.example.com
 ```
+
+
+################
+### NETZWERK ###
+################
+
+# Standart UFW Firewall Regeln
+ufw logging low
+ufw default allow outgoing
+ufw default deny incoming
+ufw allow 22
+
+# UFW Firewall aktivieren
+ufw --force enable
+
+################
+### SECURITY ###
+################
+
+# Download fail2ban Jail für ssh_custom_port
+apt install fail2ban
+wget -O /etc/fail2ban/jail.d/defaults-debian.conf https://pagespeedplus.github.io/ubuntu/etc/fail2ban/jail.d/defaults-debian.conf
+fail2ban-client reload && systemctl restart fail2ban.service
